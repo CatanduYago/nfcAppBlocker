@@ -8,21 +8,6 @@ y sin root.
 
 ---
 
-## Índice de la documentación
-
-| Documento | Contenido |
-|---|---|
-| `docs/ARQUITECTURA.md` | Capas, flujo de datos, modelo de datos, componentes Android y por qué cada uno |
-| `docs/NFC.md` | UID vs NDEF, dispatch en segundo plano, escritura de token, restricciones reales |
-| `docs/BLOQUEO.md` | Cómo se bloquea, resistencia a evasiones y qué evasiones siguen siendo posibles |
-| `docs/SEGURIDAD.md` | Modelo de amenazas, clonado de tarjetas, Keystore, qué garantiza y qué no |
-| `docs/PLAY_STORE.md` | Políticas de Google Play aplicables y arquitectura alternativa si rechazan la app |
-| `docs/PRUEBAS.md` | Compilación e instrucciones para probarlo en un teléfono real con tarjeta |
-| `docs/LIMITACIONES.md` | Lista honesta de limitaciones conocidas y mejoras futuras |
-| `docs/PRIVACIDAD.md` | Política de privacidad, coherente con lo que hace el código |
-
----
-
 ## Estado del proyecto
 
 Lo que está implementado y es funcional:
@@ -42,11 +27,7 @@ Lo que **no** está hecho todavía y conviene saberlo antes de empezar:
 
 - No hay asistente de onboarding paso a paso; en su lugar, la pantalla de inicio muestra
   tarjetas de aviso que llevan a cada permiso pendiente.
-- No hay exportación/importación de configuración (está en la lista de mejoras).
-- **El proyecto no ha sido compilado.** Se ha escrito con el SDK de Android en mente pero
-  sin un entorno Android disponible, así que espera tener que resolver algún import o
-  alguna versión de dependencia en el primer `assembleDebug`. La lógica de dominio,
-  que es la parte con enjundia, sí está cubierta por tests.
+- No hay exportación/importación de configuración
 
 ---
 
@@ -72,13 +53,3 @@ adb shell settings put secure accessibility_enabled 1
 
 Detalle completo en `docs/PRUEBAS.md`.
 
----
-
-## Nota sobre `targetSdk`
-
-El proyecto va a `compileSdk`/`targetSdk` 35 porque son las versiones que puedo
-garantizar como estables. Google Play exige `targetSdk` 36 para envíos nuevos desde
-agosto de 2026; para subirlo basta cambiar los dos valores en `app/build.gradle.kts`
-y revisar los cambios de comportamiento de Android 16 (sobre todo los relativos a
-foreground services y a las restricciones de lanzamiento de Activities desde segundo
-plano, que afectan directamente a la pantalla de bloqueo).
