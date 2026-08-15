@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ================== HARDWARE ================== -->
+    <uses-permission android:name="android.permission.NFC" />
+    <!-- required=false: la app sigue siendo útil (perfiles manuales) en dispositivos sin NFC -->
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+
+    <!-- ================== PERMISOS NORMALES ================== -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- ================== PERMISOS ESPECIALES (concedidos en Ajustes, no en runtime) ==================
+         PACKAGE_USAGE_STATS  -> estadísticas de uso y detección de respaldo (Ajustes > Acceso a datos de uso)
+         SYSTEM_ALERT_WINDOW  -> opcional: overlay de bloqueo cuando lanzar Activity no es fiable
+         El servicio de accesibilidad NO se declara aquí: se concede en Ajustes > Accesibilidad. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ================== VISIBILIDAD DE PAQUETES (Android 11+) ==================
+         Deliberadamente NO usamos QUERY_ALL_PACKAGES: Google Play lo considera un permiso
+         sensible que exige formulario de declaración. Con este <queries> vemos únicamente
+         las apps que tienen icono en el launcher, que es exactamente lo que necesitamos. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".NfcKeyBlockApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@style/Theme.NfcKeyBlock">
+
+        <!-- Pantalla principal -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.NfcKeyBlock">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ================== PUNTO DE ENTRADA NFC ==================
+             Activity invisible que el SISTEMA lanza al detectar la tarjeta, incluso con la
+             app cerrada. Es la única vía soportada: Android entrega los tags mediante
+             dispatch a una Activity, nunca a un Service o BroadcastReceiver.
+
+             Tres filtros, en orden de fiabilidad:
+             1. NDEF_DISCOVERED con MIME propio -> máxima prioridad, sin desambiguación.
+             2. TECH_DISCOVERED -> funciona con tarjetas de solo lectura / no escritas.
+             3. TAG_DISCOVERED  -> último recurso (solo si ninguna otra app coincide). -->
+        <activity
+            android:name=".ui.nfcdispatch.NfcDispatchActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity=".nfc"
+            android:theme="@style/Theme.NfcKeyBlock.Transparent">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.com.nfckeyblock.key" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/nfc_tech_filter" />
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- ================== PANTALLA DE BLOQUEO ==================
+             singleTask + excludeFromRecents para que no se pueda "dejar atrás" en recientes.
+             showWhenLocked permite cubrir la app bloqueada también sobre la pantalla de bloqueo. -->
+        <activity
+            android:name=".ui.block.BlockActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:noHistory="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="false"
+            android:taskAffinity=".block"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.NfcKeyBlock" />
+
+        <!-- ================== SERVICIO DE ACCESIBILIDAD ==================
+             Motor real del bloqueo. isAccessibilityTool="false" porque NO es una herramienta
+             de asistencia para usuarios con discapacidad: es una app de bienestar digital.
+             Declararlo como "true" sin serlo es motivo directo de rechazo en Google Play. -->
+        <service
+            android:name=".service.BlockingAccessibilityService"
+            android:exported="false"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- ================== FOREGROUND SERVICE DE SESIÓN ==================
+             Android 14+ obliga a declarar el tipo. No encaja en ninguna categoría estándar,
+             por lo que se usa specialUse con su justificación (requiere formulario en Play). -->
+        <service
+            android:name=".service.BlockingSessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="focus_session_state_and_integrity_monitoring" />
+        </service>
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

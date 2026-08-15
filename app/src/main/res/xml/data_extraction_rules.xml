@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <!-- Nada de la app sale del dispositivo por copia de seguridad automática:
+         las huellas de tarjeta están ligadas a una clave del Keystore no exportable. -->
+    <cloud-backup><exclude domain="root" /></cloud-backup>
+    <device-transfer><exclude domain="root" /></device-transfer>
+</data-extraction-rules>

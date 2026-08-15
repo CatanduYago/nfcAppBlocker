@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">NFC KeyBlock</string>
+    <string name="accessibility_service_label">NFC KeyBlock – Bloqueo de apps</string>
+    <string name="accessibility_service_summary">Detecta qué aplicación pasa a primer plano para poder bloquearla durante tus sesiones de concentración.</string>
+    <string name="accessibility_service_description">NFC KeyBlock necesita este servicio para saber qué aplicación acabas de abrir. Solo se usa el nombre del paquete de la app en primer plano y, si está en tu lista de bloqueo, se muestra la pantalla de bloqueo. No se lee, almacena ni envía el contenido de tus pantallas.</string>
+
+    <string name="channel_session_name">Sesión de concentración</string>
+    <string name="channel_session_desc">Muestra el estado de la sesión activa.</string>
+    <string name="channel_integrity_name">Avisos de integridad</string>
+    <string name="channel_integrity_desc">Avisa si el bloqueo deja de estar operativo.</string>
+
+    <string name="notif_session_title">Modo concentración activo</string>
+    <string name="notif_integrity_title">El bloqueo no está operativo</string>
+    <string name="notif_integrity_text">El servicio de accesibilidad se ha desactivado. Vuelve a activarlo para mantener tu sesión.</string>
+
+    <string name="block_title">Aplicación bloqueada</string>
+    <string name="block_body">Has activado tu modo de concentración.\nAcerca tu tarjeta NFC para desbloquear el acceso.</string>
+</resources>
